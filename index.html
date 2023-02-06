@@ -1,0 +1,83 @@
+<style>
+    @media screen and (min-width: 1280px) {
+        body {
+            max-width: 40%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+    @media (prefers-color-scheme: dark) {
+        body {
+            background-color: #222;
+            color: white;
+        }
+        a, a:visited {
+            color: white;
+        }
+    }
+</style>
+This is an <i>extremely</i> basic login UI for the anonymous <a href='https://telegra.ph'>Telegra.ph</a> blogging platform, utilising its public API.<br>
+Currently the only things you can do are create accounts, log in and reset your password, but more features (e.g. editing account info or listing your posts) may be added soon.<br>
+Eventually, the site might even not look like pure garbage.<hr>
+Create an account:<form id=create onkeypress="return event.keyCode!=13">
+    Username (not visible to anyone but you, letters only): <input id='short_name' required pattern="[a-zA-Z]+"><br>
+    <button type=button id=create_btn>Create account</button>
+</form>
+--- OR ---<br>
+Log in:
+<form id=login onkeypress="return event.keyCode!=13">
+    Password: <input id=access_token type=password required pattern='\w+'><br>
+    <button type=button id=login_btn>Log in</button>
+    <button type=button id=reset_btn>Reset password</button>
+</form>
+<script>
+    function clearInputs() {
+        [...document.getElementsByTagName('input')].forEach(x => { x.value = '' })
+    }
+    async function sendFetch(url) {
+        const r = await fetch(url)
+        if (!r.ok) {
+            alert('Failed to communicate with Telegra.ph API')
+            return
+        }
+        const j = await r.json()
+        if (!j.ok) {
+            alert(`Telegra.ph returned error: ${j.error}`)
+            return
+        }
+        return j.result
+    }
+    async function doCreate(short_name) {
+        const r = await sendFetch(`https://api.telegra.ph/createAccount?short_name=${short_name}`)
+        clearInputs()
+        if (!r) return
+        navigator.clipboard.writeText(r.access_token)
+        alert(`Account created. Your password is: ${r.access_token}. It has been copied to your clipboard.`)
+    }
+    async function doLogin(access_token) {
+        const r = await sendFetch(`https://api.telegra.ph/getAccountInfo?access_token=${access_token}&fields=["auth_url"]`)
+        clearInputs()
+        if (!r) return
+        location.href = r.auth_url
+    }
+    async function doReset(access_token) {
+        const r = await sendFetch(`https://api.telegra.ph/revokeAccessToken?access_token=${access_token}`)
+        clearInputs()
+        if (!r) return
+        navigator.clipboard.writeText(r.access_token)
+        alert(`Your new password is: ${r.access_token}. It has been copied to your clipboard.`)
+    }
+    document.getElementById('create_btn').addEventListener('click', event => {
+        if (!document.getElementById('create').reportValidity()) return
+        const short_name = document.getElementById('short_name').value
+        doCreate(short_name)
+    })
+    document.getElementById('login_btn').addEventListener('click', event => {
+        if (!document.getElementById('login').reportValidity()) return
+        doLogin(document.getElementById('access_token').value)
+    })
+    document.getElementById('reset_btn').addEventListener('click', event => {
+        if (!document.getElementById('login').reportValidity()) return
+        doReset(document.getElementById('access_token').value)
+    })
+</script>
