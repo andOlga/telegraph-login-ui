@@ -38,6 +38,15 @@ Eventually, the site might even not look like pure garbage.<hr>
     <button type=button id=reset_btn>Reset password</button>
 </form>
 </details>
+<hr>
+<details>
+<summary>List your recent posts</summary>
+<form id=postlist autocomplete="off" onkeypress="return event.keyCode!=13">
+    (note: your username is <i>not required</i> for this action)
+    Current password: <input id=access_token_lst type=password required pattern='\w+'>
+    <button type=button id=list_btn>List posts</button>
+    <ol id=postlist_out></ol>
+</details>
 <script>
     function clearInputs() {
         [...document.getElementsByTagName('input')].forEach(x => { x.value = '' })
@@ -75,6 +84,21 @@ Eventually, the site might even not look like pure garbage.<hr>
         navigator.clipboard.writeText(r.access_token)
         alert(`Your new password is: ${r.access_token}. It has been copied to your clipboard.`)
     }
+    async function doPostList(access_token) {
+        const r = await sendFetch(`https://api.telegra.ph/getPageList?access_token=${access_token}`)
+        clearInputs()
+        if (!r) return
+        const ol = document.getElementById('postlist_out')
+        ol.innerHTML = ''
+        for (const page of r.pages) {
+            const li = document.createElement('li')
+            const a = document.createElement('a')
+            a.href = page.url
+            a.innerText = page.title
+            li.appendChild(a)
+            ol.appendChild(li)
+        }
+    }
     document.getElementById('create_btn').addEventListener('click', event => {
         if (!document.getElementById('create').reportValidity()) return
         const short_name = document.getElementById('short_name').value
@@ -87,5 +111,9 @@ Eventually, the site might even not look like pure garbage.<hr>
     document.getElementById('reset_btn').addEventListener('click', event => {
         if (!document.getElementById('login').reportValidity()) return
         doReset(document.getElementById('access_token').value)
+    })
+    document.getElementById('list_btn').addEventListener('click', event => {
+        if (!document.getElementById('postlist').reportValidity()) return
+        doPostList(document.getElementById('access_token_lst').value)
     })
 </script>
